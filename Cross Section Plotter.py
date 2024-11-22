@@ -14,7 +14,7 @@ import pandas as pd
 #######################################################################################################################################################
 
 #Import the excel file, the first sheet is the surface elevation, the second sheet is the formation and well info
-filepath = r"P:\P310002-Geologic Mapping\Titusville30x60\Titusville-ArcPro\Canaveral_TestXsecData.xlsx"
+filepath = r"C:\Users\thomas_ja\Desktop\CrossSectionTool\Fake Data.xlsx"
 df_elev = pd.read_excel(filepath, sheet_name='Elev')
 df_cross = pd.read_excel(filepath, sheet_name='Xsecs')
 
@@ -318,10 +318,9 @@ for row in range(len(initial_polygon_list)):
                 #Check for interlocking vs pool case
                 if row != 0:
                     #In interlocking cases, the above formation will be blocky and the below formation will have the teeth
-                    if np.all(style_array[row-1, fade-1:fade+1] == ['f', 'n']): #Creates the fade polygon between two interlocking formations
+                    if np.all(style_array[row-1, fade-1:fade+1] == ['f', 'n']): #Interlocking above
                        
                         #Calculate the universal values for this interlocking figure
-                        thickness = initial_polygon_list[row][0, fade] - initial_polygon_list[row][1, fade]
                         midpoint = (locations[fade] + locations[fade-1]) / 2
                         teeth_point = midpoint + fade_teeth_offset
                         #Calculate the bottom slope values
@@ -330,7 +329,10 @@ for row in range(len(initial_polygon_list)):
                         bottom_midpoint_elev = (bottom_slope * midpoint) + yintercept
                         bottom_teeth_elev = (bottom_slope * teeth_point) + yintercept
                         #Calculate the top elev with thickness and bottom midpoint elevation
-                        top_midpoint_elev = bottom_midpoint_elev + thickness
+                        top_slope = (initial_polygon_list[row][0, fade] - initial_polygon_list[row-1][0, fade-1]) / (locations[fade] - locations[fade-1])
+                        yintercept = initial_polygon_list[row][0, fade] - (top_slope * locations[fade])
+                        top_midpoint_elev = (top_slope * midpoint) + yintercept
+                        
                         
                         
 
@@ -382,7 +384,7 @@ for row in range(len(initial_polygon_list)):
                 #Check for interlocking vs pool case
                 if row != 0:
                     #In interlocking cases, the above formation will be blocky and the below formation will have the teeth
-                    if np.all(style_array[row-1, fade:fade+2] == ['n', 'f']):
+                    if np.all(style_array[row-1, fade:fade+2] == ['n', 'f']): #Interlocking above
                         midpoint = (locations[fade] + locations[fade+1]) / 2
                         teeth_point = midpoint - fade_teeth_offset
 
@@ -395,6 +397,10 @@ for row in range(len(initial_polygon_list)):
                         yintercept = initial_polygon_list[row][1, fade] - (bottom_slope * locations[fade])
                         bottom_midpoint_elev = (bottom_slope * midpoint) + yintercept
                         bottom_teeth_elev = (bottom_slope * teeth_point) + yintercept
+                        
+                        top_slope = (initial_polygon_list[row][0, fade] - initial_polygon_list[row-1][0, fade+1]) / (locations[fade] - locations[fade+1])
+                        yintercept = initial_polygon_list[row][0, fade] - (top_slope * locations[fade])
+                        top_midpoint_elev = (top_slope * midpoint) + yintercept
 
                         peaks_and_troughs = np.linspace(top_midpoint_elev, bottom_midpoint_elev, num=7)
                         peak_locations = np.hstack((np.tile([midpoint, teeth_point], 3), midpoint))
@@ -440,10 +446,11 @@ for row in range(len(initial_polygon_list)):
 
                         
 
-
-
+            
+            
             elif direction == 'both':
                 insert_location = fade + insert_index_correction
+                
 
                 #In interlocking cases, the above formation will be blocky and the below formation will have the teeth
                 if np.all(style_array[row-1, fade-1:fade+1] == ['f', 'n']): #Interlocks above
@@ -468,6 +475,7 @@ for row in range(len(initial_polygon_list)):
                     interlock_figure_array = np.vstack((peaks_and_troughs, bottom_array, peak_locations))
                     total_stack = np.insert(total_stack, [insert_location], interlock_figure_array, axis=1)
                     insert_index_correction += 7
+                    
                         
                     #Creates a blocky polygon to draw over if the formation below interlocks
                 elif np.all(style_array[row+1, fade-1:fade+1] == ['f', 'n']): #Interlocks below
@@ -475,6 +483,7 @@ for row in range(len(initial_polygon_list)):
                     total_stack = np.insert(total_stack, [insert_location+1], new_stack, axis=1)
                     insert_index_correction += 1
                     interlock_below = True
+                    
 
 
                     
@@ -501,9 +510,10 @@ for row in range(len(initial_polygon_list)):
                     total_stack = np.insert(total_stack, [insert_location], interlock_figure_array, axis=1)
                     insert_index_correction += 7
                     
+                    
 
 
-                insert_location += insert_index_correction
+                insert_location = fade + insert_index_correction
                 #In interlocking cases, the above formation will be blocky and the below formation will have the teeth
                 if np.all(style_array[row-1, fade:fade+2] == ['n', 'f']): #Interlocks above
                     midpoint = (locations[fade] + locations[fade+1]) / 2
@@ -557,12 +567,13 @@ for row in range(len(initial_polygon_list)):
 
                     total_stack = np.insert(total_stack, [insert_location+1], interlock_figure_array, axis=1)
                     insert_index_correction += 7
+                    
    
 
                 
 
 
-
+    
 
                     
 ########################################################################################################################################################
@@ -626,6 +637,7 @@ for row in range(len(initial_polygon_list)):
 
 #Calculates the polygons for formations that dont fade or pinch
     if ~np.any(style_array[row] == 'p') and ~np.any(style_array[row] == 'f'):
+        
         #Checks if the next formation down pinches or fades
         if np.any(style_array[row+1] == 'f') or np.any(style_array[row+1] == 'p') or np.any(style_array[row+1] == 'c'):
             #If it does, the index of where it pinches or fades will be used to replace the bottom value of the top formation with the bottom value
@@ -634,12 +646,24 @@ for row in range(len(initial_polygon_list)):
             bottom_replacements = (style_array[row+1] == 'f') | (style_array[row+1] == 'p')
             total_stack[1][bottom_replacements] =initial_polygon_list[row+1][1][bottom_replacements]
             #Lastly it creates the final polygon in the form of a 3-row 2D array and adds it to a list
-
             if row != len(initial_polygon_list)-2 :
                 bottom_replacements = (style_array[row+2] == 'f') | (style_array[row+2] == 'p')
                 total_stack[1][bottom_replacements] =initial_polygon_list[row+2][1][bottom_replacements]
             
-        total_stack = np.vstack((total_stack, locations))
+            
+            #Adjusts for the fact that when 'c' is in the style array the formations below will need to be connected and they will leave no value for this layer
+            #to grab as its bottom
+            connection_below = np.where(style_array[row+1] == 'c')[0]
+            for connection in connection_below:
+                if initial_polygon_list[row][1, connection - 1] < initial_polygon_list[row][1, connection + 1]:
+                    total_stack[1, connection] = initial_polygon_list[row][1, connection - 1]
+                else:
+                    total_stack[1, connection] = initial_polygon_list[row][1, connection + 1]
+                    
+        #Connect formation across data gaps, particularly below shallow wells this is important
+        if total_stack.shape[0] == 2:
+            total_stack = np.vstack((total_stack, locations))
+        
         if np.any(style_array[row] == 'c'):
             connect_index = np.where(style_array[row] == 'c')
             total_stack = np.delete(total_stack, connect_index, axis=1)
@@ -723,7 +747,6 @@ def line_plotter(ax, row, core_or_cuttings, locations, formation_polygons):
 
 
 
-                     
 fig = plt.figure(figsize=(16, 8), dpi=300)
 ax = fig.add_axes([0, 0, 1, 1])
 
