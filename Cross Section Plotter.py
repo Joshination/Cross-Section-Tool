@@ -14,7 +14,7 @@ import pandas as pd
 #######################################################################################################################################################
 
 #Import the excel file, the first sheet is the surface elevation, the second sheet is the formation and well info
-filepath = r"C:\Users\thomas_ja\Desktop\CrossSectionTool\Fake Data.xlsx"
+filepath = r"C:\Users\thomas_ja\Desktop\CrossSectionTool\Interlock test.xlsx"
 df_elev = pd.read_excel(filepath, sheet_name='Elev')
 df_cross = pd.read_excel(filepath, sheet_name='Xsecs')
 
@@ -33,7 +33,6 @@ def check_left_right(style_row, index):
     index     - integer of where a pinch or fade is said to be
 
     Uses the index to search the style_row for the direction of pinching and fading.
-
     """
     # If it is the last item in the array then the direction is left
     if index == (len(style_row)-1) and style_row[index - 1] == 'n' :
@@ -223,6 +222,7 @@ core_or_cuttings = df_cross['CORE_OR_CUTTINGS'].tolist()
 locations = df_cross['DIST_FT'].tolist()
 well_elev = np.array(df_cross['DEM_ELEV'].tolist())
 
+#colors = df_cross['COLORS'].tolist()
 ################################################################################################################################################
 
 #This creates a list of all the formation names from the formation dataframe column headers
@@ -744,13 +744,13 @@ def line_plotter(ax, row, core_or_cuttings, locations, formation_polygons):
 #####################################################################################################################################################
 #####################################################################################################################################################
           
-
+top_of_bottom = np.max(formations_array[-1])
 
 
 fig = plt.figure(figsize=(16, 8), dpi=300)
 ax = fig.add_axes([0, 0, 1, 1])
 
-ax.fill_between(distance, -100, elev)
+ax.fill_between(distance, top_of_bottom, elev)
 ax.plot(distance, elev, color='k', linewidth=0.8)
 
 for formation in formation_polygons:
